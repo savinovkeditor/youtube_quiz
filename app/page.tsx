@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Link2, Sparkles, Loader2 } from "lucide-react";
+import { AuthNav } from "@/components/auth/auth-nav";
 
 type TranscriptResponse = { transcript: string; summary?: string; raw?: any };
 type DetailLevel = "short" | "medium" | "long";
@@ -168,6 +169,10 @@ export default function HomePage() {
   return (
     <main className="min-h-screen py-20 px-4">
       <div className="container mx-auto max-w-5xl">
+        <div className="flex justify-end mb-8">
+          <AuthNav />
+        </div>
+
         <div className="text-center mb-12 space-y-4">
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-balance">
             <span className="block">Создавайте</span>
