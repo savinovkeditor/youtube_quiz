@@ -183,6 +183,12 @@ export default function HomePage() {
           </p>
         </div>
 
+        <div className="text-center mb-8">
+          <Badge variant="outline" className="text-sm px-4 py-1">
+            Шаг 1
+          </Badge>
+        </div>
+
         <Card className="shadow-2xl border-2 overflow-hidden">
           <CardHeader className="bg-gradient-to-br from-secondary/50 to-background border-b">
             <CardTitle className="flex items-center gap-2 text-2xl">
