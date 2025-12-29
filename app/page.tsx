@@ -2,6 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { Question } from "@/lib/gemini";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Link2, Sparkles, Loader2 } from "lucide-react";
 
 type TranscriptResponse = { transcript: string; summary?: string; raw?: any };
 type DetailLevel = "short" | "medium" | "long";
@@ -160,141 +166,287 @@ export default function HomePage() {
   }
 
   return (
-    <main style={styles.page}>
-      <section style={styles.card}>
-        <h1 style={styles.title}>Транскрипт YouTube ролика</h1>
-        <p style={styles.lead}>Вставь ссылку на ролик. Бэкенд дернет RapidAPI и вернет краткий пересказ.</p>
+    <main className="min-h-screen py-20 px-4">
+      <div className="container mx-auto max-w-5xl">
+        <div className="text-center mb-12 space-y-4">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-balance">
+            <span className="block">Создавайте</span>
+            <span className="block">интерактивные</span>
+            <span className="block">
+              викторины <span className="text-red-600">на основе</span>
+            </span>
+            <span className="block text-red-600">YouTube видео</span>
+          </h1>
+          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
+            Превратите любое видео в увлекательное обучающее путешествие с автоматически генерируемыми вопросами и
+            интерактивными викторинами
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <label style={styles.label}>
-            YouTube ссылка
-            <input
-              style={styles.input}
-              value={youtubeUrl}
-              onChange={(e) => setYoutubeUrl(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=..."
-              required
-            />
-          </label>
-          <div style={styles.actions}>
-            <button style={styles.button} type="submit" disabled={isBusy || youtubeUrl.trim().length === 0}>
-              {transcriptLoading ? "Запрашиваю..." : "Получить транскрипт"}
-            </button>
-          </div>
-        </form>
+        <Card className="shadow-2xl border-2 overflow-hidden">
+          <CardHeader className="bg-gradient-to-br from-secondary/50 to-background border-b">
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <Link2 className="w-6 h-6 text-primary" />
+              Вставьте ссылку на видео
+            </CardTitle>
+            <CardDescription className="text-base">Поддерживаются все публичные видео YouTube</CardDescription>
+          </CardHeader>
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="youtube-url" className="text-base font-medium">
+                  YouTube URL
+                </Label>
+                <div className="flex gap-3">
+                  <Input
+                    id="youtube-url"
+                    type="url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    onFocus={() => { if (youtubeUrl === exampleUrl) setYoutubeUrl(''); }}
+                    className="h-14 text-lg rounded-xl"
+                    required
+                  />
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="px-8 h-14 rounded-xl whitespace-nowrap"
+                    disabled={isBusy || youtubeUrl.trim().length === 0}
+                  >
+                    {transcriptLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Запрашиваю...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Создать
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
 
-        {error && <p style={styles.error}>Ошибка: {error}</p>}
+        {error && (
+          <Card className="border-destructive/50">
+            <CardContent className="pt-6">
+              <p className="text-destructive">Ошибка: {error}</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <div style={styles.result}>
-          <div style={styles.summaryHeader}>
-            <div style={styles.summaryTitle}>
-              <p style={styles.labelText}>Краткое описание (Gemini 2.5 Flash Lite)</p>
-              {summaryLoading && <span style={styles.summaryLoader}>Обновляю описание...</span>}
+        {result && (
+          <>
+            {/* Шаг 2: Пересказ */}
+            <div className="text-center mb-8">
+              <Badge variant="outline" className="text-sm px-4 py-1">
+                Шаг 2
+              </Badge>
             </div>
-            <div style={styles.toggleGroup}>
-              {(Object.keys(detailLabels) as DetailLevel[]).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  style={{ ...styles.toggle, ...(detail === key ? styles.toggleActive : {}) }}
-                  onClick={() => handleDetailChange(key)}
-                  disabled={isBusy}
-                >
-                  {detailLabels[key]}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div style={styles.summaryBox}>
-            {summaryLoading ? "Обновляю описание..." : result?.summary || "—"}
-          </div>
-          {result?.transcript && (
-            <div style={{ marginTop: 12 }}>
-              <button
-                type="button"
-                style={styles.secondary}
-                onClick={() => fetchQuestions(result.transcript)}
-                disabled={questionsLoading || !result?.transcript}
-              >
-                {questionsLoading ? "Генерирую вопросы..." : "Сгенерировать контрольные вопросы"}
-              </button>
-            </div>
-          )}
-          {questions && questions.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <p style={styles.labelText}>Контрольные вопросы</p>
-              {questions.map((question, idx) => {
-                const state = questionStates[idx];
-                return (
-                  <div key={idx} style={{ ...styles.questionContainer, border: state.answered ? (state.isCorrect ? '2px solid #22c55e' : '2px solid #ef4444') : '1px solid #1f2937' }}>
-                    <p style={styles.questionText}>{question.question}</p>
-                    {question.options.map((option, optIdx) => (
-                      <label key={optIdx} style={styles.option}>
-                        <input
-                          type="radio"
-                          name={`question-${idx}`}
-                          value={optIdx}
-                          checked={state.selected === optIdx}
-                          onChange={() => handleQuestionSelect(idx, optIdx)}
-                          style={styles.optionInput}
-                          disabled={state.answered}
-                        />
-                        <span style={styles.optionLabel}>{option}</span>
-                      </label>
-                    ))}
-                    {!state.answered && state.selected !== null && (
-                      <button
-                        type="button"
-                        style={styles.answerButton}
-                        onClick={() => handleAnswerSubmit(idx)}
+
+            <Card className="shadow-2xl border-2 overflow-hidden mb-8">
+              <CardHeader className="bg-gradient-to-br from-secondary/50 to-background border-b">
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                  Краткое описание
+                </CardTitle>
+                <CardDescription className="text-base">AI-генерированный пересказ видео</CardDescription>
+              </CardHeader>
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Детализация (Gemini 2.5 Flash Lite)
+                  </p>
+                  <div className="flex gap-2">
+                    {(Object.keys(detailLabels) as DetailLevel[]).map((key) => (
+                      <Button
+                        key={key}
+                        variant={detail === key ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleDetailChange(key)}
+                        disabled={isBusy}
                       >
-                        Ответить
-                      </button>
-                    )}
-                    {state.answered && (
-                      <p style={state.isCorrect ? styles.correctAnswer : styles.incorrectAnswer}>
-                        {state.isCorrect ? 'Верно!' : `Неверно. Правильный ответ: ${question.options[question.correct]}`}
-                      </p>
-                    )}
+                        {detailLabels[key]}
+                      </Button>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          )}
-          {result && (
-            <>
-              <div style={styles.transcriptHeader}>
-                <p style={styles.labelText}>Транскрипт</p>
-                <button
-                  type="button"
-                  style={styles.linkButton}
+                </div>
+                <div className="bg-secondary/20 border border-secondary/30 rounded-lg p-6 text-foreground">
+                  {summaryLoading ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Обновляю описание...
+                    </div>
+                  ) : (
+                    result?.summary || "—"
+                  )}
+                </div>
+                <Button
+                  variant="outline"
                   onClick={handleExportPdf}
                   disabled={!result?.summary || summaryLoading}
+                  className="mt-4"
                 >
-                  Экспорт описания в PDF
-                </button>
-              </div>
-              <pre style={styles.pre}>{result.transcript ? formatTranscriptForDisplay(result.transcript) : "—"}</pre>
-              <p style={styles.hint}>
-                API: youtube-captions-transcript-subtitles-video-combiner → gemini-2.5-flash-lite
-              </p>
-            </>
-          )}
-          {chapters.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <p style={styles.labelText}>Главы (кликабельные таймкоды)</p>
-              <div style={styles.chapters}>
-                {chapters.map((ch, idx) => (
-                  <a key={`${ch.start}-${idx}`} href={ch.url} target="_blank" rel="noopener noreferrer" style={styles.chapterChip}>
-                    <span style={styles.chapterTime}>{formatClock(ch.start)}</span>
-                    <span style={styles.chapterTitle}>{ch.title}</span>
-                  </a>
-                ))}
-              </div>
+                  Экспорт в PDF
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Шаг 3: Викторина */}
+            {result?.transcript && (
+              <>
+                <div className="text-center mb-8">
+                  <Badge variant="outline" className="text-sm px-4 py-1">
+                    Шаг 3
+                  </Badge>
+                </div>
+
+                <Card className="shadow-2xl border-2 overflow-hidden mb-8">
+                  <CardHeader className="bg-gradient-to-br from-secondary/50 to-background border-b">
+                    <CardTitle className="flex items-center gap-2 text-2xl">
+                      <Sparkles className="w-6 h-6 text-primary" />
+                      Контрольные вопросы
+                    </CardTitle>
+                    <CardDescription className="text-base">Проверьте свои знания</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    {questions && questions.length > 0 ? (
+                      <div className="space-y-6">
+                        {questions.map((question, idx) => {
+                          const state = questionStates[idx];
+                          return (
+                            <div
+                              key={idx}
+                              className={`border-2 rounded-lg p-6 transition-colors ${
+                                state.answered
+                                  ? state.isCorrect
+                                    ? 'border-green-500 bg-green-500/10'
+                                    : 'border-red-500 bg-red-500/10'
+                                  : 'border-border bg-card'
+                              }`}
+                            >
+                              <p className="text-lg font-medium mb-4 text-card-foreground">{question.question}</p>
+                              <div className="space-y-3">
+                                {question.options.map((option, optIdx) => (
+                                  <label key={optIdx} className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`question-${idx}`}
+                                      value={optIdx}
+                                      checked={state.selected === optIdx}
+                                      onChange={() => handleQuestionSelect(idx, optIdx)}
+                                      disabled={state.answered}
+                                      className="w-4 h-4 text-primary"
+                                    />
+                                    <span className="text-card-foreground">{option}</span>
+                                  </label>
+                                ))}
+                              </div>
+                              {!state.answered && state.selected !== null && (
+                                <Button
+                                  onClick={() => handleAnswerSubmit(idx)}
+                                  className="mt-4"
+                                >
+                                  Ответить
+                                </Button>
+                              )}
+                              {state.answered && (
+                                <p className={`mt-4 text-sm font-medium ${state.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                                  {state.isCorrect ? 'Верно!' : `Неверно. Правильный ответ: ${question.options[question.correct]}`}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Button
+                          onClick={() => fetchQuestions(result.transcript)}
+                          disabled={questionsLoading}
+                          size="lg"
+                        >
+                          {questionsLoading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                              Генерирую вопросы...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-5 h-5 mr-2" />
+                              Сгенерировать викторину
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {/* Шаг 4: Транскрипт */}
+            <div className="text-center mb-8">
+              <Badge variant="outline" className="text-sm px-4 py-1">
+                Шаг 4
+              </Badge>
             </div>
-          )}
-        </div>
-      </section>
+
+            <Card className="shadow-2xl border-2 overflow-hidden">
+              <CardHeader className="bg-gradient-to-br from-secondary/50 to-background border-b">
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  <Link2 className="w-6 h-6 text-primary" />
+                  Полная транскрипция
+                </CardTitle>
+                <CardDescription className="text-base">Исходный текст видео</CardDescription>
+              </CardHeader>
+              <CardContent className="p-8">
+                <pre className="bg-secondary/10 border border-secondary/20 rounded-lg p-6 text-sm overflow-auto max-h-96 whitespace-pre-wrap text-card-foreground">
+                  {result.transcript ? formatTranscriptForDisplay(result.transcript) : "—"}
+                </pre>
+                <p className="text-xs text-muted-foreground mt-4">
+                  API: youtube-captions-transcript-subtitles-video-combiner → gemini-2.5-flash-lite
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Главы */}
+            {chapters.length > 0 && (
+              <Card className="shadow-2xl border-2 overflow-hidden mt-8">
+                <CardHeader className="bg-gradient-to-br from-secondary/50 to-background border-b">
+                  <CardTitle className="flex items-center gap-2 text-2xl">
+                    <Link2 className="w-6 h-6 text-primary" />
+                    Главы (кликабельные таймкоды)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-8">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {chapters.map((ch, idx) => (
+                      <a
+                        key={`${ch.start}-${idx}`}
+                        href={ch.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-4 bg-secondary/20 border border-secondary/30 rounded-lg hover:bg-secondary/30 transition-colors text-card-foreground"
+                      >
+                        <span className="font-mono text-sm text-primary font-semibold min-w-[54px]">
+                          {formatClock(ch.start)}
+                        </span>
+                        <span className="text-sm">{ch.title}</span>
+                      </a>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+      </div>
     </main>
   );
 }
@@ -569,230 +721,3 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    background: "radial-gradient(circle at 10% 20%, rgba(99,102,241,0.2), transparent 25%), #0b1220",
-    color: "#e5e7eb",
-    padding: "56px 20px",
-    fontFamily: "Inter, system-ui, -apple-system, sans-serif",
-    display: "flex",
-    justifyContent: "center",
-  },
-  card: {
-    width: "100%",
-    maxWidth: 760,
-    background: "linear-gradient(145deg, #0f172a, #0b1220)",
-    border: "1px solid #1f2937",
-    borderRadius: 18,
-    padding: 28,
-    boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  },
-  title: { margin: 0, fontSize: 32, letterSpacing: -0.3 },
-  lead: { margin: "4px 0 12px", color: "#cbd5e1", lineHeight: 1.6 },
-  form: { display: "flex", flexDirection: "column", gap: 10 },
-  label: { display: "flex", flexDirection: "column", gap: 6, fontWeight: 600 },
-  input: {
-    width: "100%",
-    padding: "12px 14px",
-    borderRadius: 12,
-    border: "1px solid #334155",
-    background: "#0f172a",
-    color: "#e5e7eb",
-    fontSize: 15,
-    outline: "none",
-  },
-  actions: { display: "flex", gap: 10, flexWrap: "wrap" },
-  button: {
-    padding: "12px 16px",
-    borderRadius: 12,
-    border: "1px solid #4f46e5",
-    background: "#6366f1",
-    color: "#e5e7eb",
-    fontWeight: 700,
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-    fontSize: 15,
-  },
-  secondary: {
-    padding: "12px 16px",
-    borderRadius: 12,
-    border: "1px solid #1f2937",
-    background: "rgba(255,255,255,0.04)",
-    color: "#cbd5e1",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  error: { color: "#fca5a5", margin: "4px 0 0", fontSize: 14 },
-  result: {
-    marginTop: 12,
-    padding: 16,
-    borderRadius: 12,
-    border: "1px solid #1f2937",
-    background: "#0f172a",
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  resultRow: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
-  code: {
-    background: "#111827",
-    padding: "6px 8px",
-    borderRadius: 10,
-    fontSize: 13,
-    border: "1px solid #1f2937",
-    wordBreak: "break-all",
-  },
-  pre: {
-    margin: "4px 0 0",
-    padding: 12,
-    borderRadius: 10,
-    background: "#0b1220",
-    color: "#e5e7eb",
-    border: "1px solid #1f2937",
-    whiteSpace: "pre-wrap",
-    fontSize: 14,
-    lineHeight: 1.6,
-    maxHeight: 380,
-    overflow: "auto",
-  },
-  summaryBox: {
-    padding: 12,
-    borderRadius: 10,
-    background: "rgba(99,102,241,0.12)",
-    border: "1px solid rgba(99,102,241,0.35)",
-    color: "#e5e7eb",
-    lineHeight: 1.6,
-  },
-  summaryHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-  summaryTitle: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  summaryLoader: {
-    fontSize: 12,
-    color: "#93c5fd",
-    background: "rgba(59,130,246,0.15)",
-    border: "1px solid rgba(59,130,246,0.35)",
-    borderRadius: 999,
-    padding: "2px 8px",
-  },
-  toggleGroup: { display: "flex", gap: 8, flexWrap: "wrap" },
-  toggle: {
-    padding: "6px 10px",
-    borderRadius: 999,
-    border: "1px solid #1f2937",
-    background: "#0f172a",
-    color: "#e5e7eb",
-    cursor: "pointer",
-    fontSize: 13,
-    transition: "all 0.15s ease",
-  },
-  toggleActive: {
-    border: "1px solid #4f46e5",
-    background: "rgba(99,102,241,0.15)",
-    color: "#c7d2fe",
-  },
-  linkButton: {
-    padding: "8px 12px",
-    borderRadius: 10,
-    border: "1px solid #334155",
-    background: "rgba(99,102,241,0.15)",
-    color: "#e5e7eb",
-    cursor: "pointer",
-    fontWeight: 600,
-  },
-  labelText: { color: "#9ca3af", fontSize: 13, margin: 0 },
-  transcriptHeader: {
-    marginTop: 12,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  meta: { margin: 0, color: "#cbd5e1", fontSize: 14 },
-  hint: { margin: "4px 0 0", color: "#94a3b8", fontSize: 13 },
-  chapters: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 8,
-    marginTop: 6,
-  },
-  chapterChip: {
-    display: "flex",
-    gap: 8,
-    alignItems: "center",
-    padding: "10px 12px",
-    borderRadius: 12,
-    background: "#0b1220",
-    border: "1px solid #1f2937",
-    color: "#e5e7eb",
-    textDecoration: "none",
-    transition: "all 0.15s ease",
-  },
-  chapterTime: {
-    fontWeight: 700,
-    fontSize: 13,
-    color: "#c7d2fe",
-    minWidth: 54,
-  },
-  chapterTitle: { fontSize: 13, color: "#e5e7eb", lineHeight: 1.4, flex: 1 },
-  questionContainer: {
-    borderRadius: 12,
-    padding: 12,
-    background: "#0f172a",
-    marginTop: 8,
-  },
-  questionText: {
-    fontSize: 15,
-    marginBottom: 8,
-    color: "#e5e7eb",
-  },
-  option: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 6,
-  },
-  optionInput: {
-    accentColor: "#4f46e5",
-  },
-  optionLabel: {
-    fontSize: 14,
-    color: "#e5e7eb",
-    cursor: "pointer",
-  },
-  answerButton: {
-    padding: "8px 12px",
-    borderRadius: 8,
-    border: "1px solid #4f46e5",
-    background: "#6366f1",
-    color: "#e5e7eb",
-    fontWeight: 600,
-    cursor: "pointer",
-    fontSize: 14,
-  },
-  correctAnswer: {
-    fontSize: 13,
-    color: "#22c55e",
-    marginTop: 6,
-  },
-  incorrectAnswer: {
-    fontSize: 13,
-    color: "#ef4444",
-    marginTop: 6,
-  },
-};
